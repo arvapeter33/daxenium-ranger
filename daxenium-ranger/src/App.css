@@ -769,3 +769,149 @@ button:hover {
     0 0 40px rgba(0,216,255,.4);
 
 }
+
+/* ===========================
+   MOBIL NÉZET
+=========================== */
+
+@media (max-width: 768px) {
+
+  body {
+    padding: 10px;
+  }
+
+  /* HEADER */
+
+  .ranger-header {
+    padding: 20px 15px 15px;
+  }
+
+  .ranger-title {
+    font-size: 28px;
+    letter-spacing: 1px;
+  }
+
+  .ranger-subtitle {
+    font-size: 14px;
+    letter-spacing: 1px;
+  }
+
+  .gps-status {
+    margin-top: 12px;
+    font-size: 14px;
+  }
+
+  /* USER PANEL */
+
+  .user-panel {
+
+    position: static !important;
+
+    margin-top: 15px;
+
+    width: 100%;
+
+    display: flex;
+
+    flex-direction: column;
+
+    align-items: center;
+
+    justify-content: center;
+  }
+
+  /* STATS */
+
+  .stats-grid {
+
+    display: grid;
+
+    grid-template-columns: 1fr 1fr;
+
+    gap: 12px;
+  }
+
+  .stat-card {
+    min-height: 110px;
+  }
+
+  .stat-card h3 {
+    font-size: 22px;
+  }
+
+  /* DASHBOARD */
+
+  .dashboard-grid {
+
+    display: grid;
+
+    grid-template-columns: 1fr;
+
+    gap: 15px;
+  }
+
+  .dashboard-btn {
+
+    width: 100%;
+
+    min-height: 110px;
+
+    font-size: 24px;
+  }
+
+  /* CARD */
+
+  .card {
+    padding: 18px;
+  }
+
+  /* LISTA OLDAL */
+
+  .stockpile-card {
+    width: 100%;
+  }
+
+  /* KÉPGALÉRIA */
+
+  .photo-grid {
+
+    grid-template-columns: 1fr;
+  }
+
+  /* QR */
+
+  canvas {
+    max-width: 100%;
+    height: auto;
+  }
+
+  img {
+    max-width: 100%;
+  }
+
+}
+
+.user-panel {
+
+  position: absolute;
+
+  top: 15px;
+
+  right: 20px;
+
+  display: flex;
+
+  flex-direction: column;
+
+  align-items: center;
+
+  gap: 8px;
+
+  padding: 12px;
+
+  border-radius: 16px;
+
+  border: 1px solid var(--border);
+
+  background: rgba(0,0,0,0.2);
+}

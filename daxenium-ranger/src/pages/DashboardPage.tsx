@@ -69,13 +69,7 @@ export default function DashboardPage({
           TIMBERTRACK RANGER
         </div>
 
-        <div
-  style={{
-    position: "absolute",
-    top: "15px",
-    right: "20px",
-  }}
->
+        <div className="user-panel">
 
   <div
     style={{
