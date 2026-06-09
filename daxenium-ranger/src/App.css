@@ -915,3 +915,66 @@ button:hover {
 
   background: rgba(0,0,0,0.2);
 }
+
+.details-actions {
+
+  display: grid;
+
+  grid-template-columns:
+    repeat(3, 220px);
+
+  gap: 15px;
+
+  justify-content: center;
+
+  margin-top: 20px;
+}
+
+@media (max-width: 768px) {
+
+  .details-actions {
+
+    grid-template-columns: 1fr;
+
+    width: 100%;
+  }
+
+  .details-actions button {
+
+    width: 100%;
+
+    min-height: 70px;
+
+    font-size: 18px;
+  }
+
+  .page-title {
+
+    font-size: 28px;
+
+    text-align: center;
+  }
+
+  .list-header {
+
+    flex-direction: column;
+
+    gap: 15px;
+  }
+
+  .scan-qr-btn {
+
+    width: 100%;
+  }
+
+  .stockpile-id {
+
+    font-size: 18px;
+  }
+
+  .stockpile-meta {
+
+    font-size: 14px;
+  }
+
+}

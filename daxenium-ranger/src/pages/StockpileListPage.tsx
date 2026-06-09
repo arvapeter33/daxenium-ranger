@@ -63,14 +63,7 @@ export default function StockpileListPage({
 
     <div>
 
-      <div
-  style={{
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: "20px",
-  }}
->
+      <div className="list-header">
 
   <h1 className="page-title">
   📦 Rakatok

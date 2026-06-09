@@ -246,16 +246,8 @@ return (
   QR azonosító
 </p>
 
-<div
-  style={{
-    display: "grid",
-    gridTemplateColumns:
-      "repeat(3, 220px)",
-    gap: "15px",
-    justifyContent: "center",
-    marginTop: "20px",
-  }}
->
+<div className="details-actions">
+  
   <button
   className="dashboard-blue"
   style={{
