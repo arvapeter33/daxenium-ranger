@@ -100,7 +100,17 @@ function App() {
             ⬅ VISSZA
           </button>
 
-          <NewStockpilePage />
+          <NewStockpilePage
+
+  onCreated={(id) => {
+
+    setSelectedStockpileId(id);
+
+    setPage("stockpile");
+
+  }}
+
+/>
 
         </div>
       );

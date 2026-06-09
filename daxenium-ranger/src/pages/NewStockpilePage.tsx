@@ -7,9 +7,13 @@ import {
 } from "../services/auditLogService";
 
 interface Props {
+  onCreated: (
+    stockpileId: string
+  ) => void;
 }
 
 export default function NewStockpilePage({
+  onCreated,
 }: Props) {
   const [loading, setLoading] = useState(false);
 
@@ -43,7 +47,7 @@ const location = {
   id
 );
 
-      alert(`Rakat létrehozva: ${id}`);
+      onCreated(id);
     } catch (err) {
       alert("GPS hiba");
     }
