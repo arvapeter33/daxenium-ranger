@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { db } from "../database/db";
+import { syncNow } from "../services/sync";
 
 interface Props {
   onNew: () => void;
@@ -187,15 +188,21 @@ export default function DashboardPage({
         </button>
 
         <button
-          className="
-            dashboard-btn
-            dashboard-dark
-          "
-        >
-          ☁️
-          <br />
-          SZINKRONIZÁLÁS
-        </button>
+  className="dashboard-btn dashboard-dark"
+  onClick={async () => {
+    try {
+      await syncNow();
+      alert("Sikeres szinkronizálás");
+    } catch (error) {
+      console.error(error);
+      alert("Szinkronizálási hiba");
+    }
+  }}
+>
+  ☁️
+  <br />
+  SZINKRONIZÁLÁS
+</button>
 
       </div>
 
