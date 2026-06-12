@@ -14,7 +14,7 @@ export async function syncNow() {
     await db.auditLogs.toArray();
 
   const response = await fetch(
-    "https://office.daxenium.hu/api/sync/push",
+    "https://office.daxenium.com/api/sync/push",
     {
       method: "POST",
       headers: {
