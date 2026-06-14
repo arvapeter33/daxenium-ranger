@@ -50,6 +50,28 @@ export default function AIKobozesPage({
     setOpencvReady] =
     useState(false);
 
+    const [referenceLength,
+  setReferenceLength] =
+  useState("100");
+
+const [referenceStart,
+  setReferenceStart] =
+  useState<{
+    x: number;
+    y: number;
+  } | null>(null);
+
+const [referenceEnd,
+  setReferenceEnd] =
+  useState<{
+    x: number;
+    y: number;
+  } | null>(null);
+
+const [cmPerPixel,
+  setCmPerPixel] =
+  useState<number | null>(null);
+
   useEffect(() => {
 
     if (cv) {
@@ -60,7 +82,68 @@ export default function AIKobozesPage({
 
   }, []);
 
-  const startAnalysis = () => {
+  const handleImageClick = (
+  e: React.MouseEvent<
+    HTMLImageElement
+  >
+) => {
+
+  const rect =
+    e.currentTarget.getBoundingClientRect();
+
+  const x =
+    e.clientX - rect.left;
+
+  const y =
+    e.clientY - rect.top;
+
+  if (!referenceStart) {
+
+    setReferenceStart({
+      x,
+      y,
+    });
+
+    return;
+  }
+
+  if (!referenceEnd) {
+
+    setReferenceEnd({
+      x,
+      y,
+    });
+
+    const pixelDistance =
+      Math.sqrt(
+        Math.pow(
+          x - referenceStart.x,
+          2
+        ) +
+        Math.pow(
+          y - referenceStart.y,
+          2
+        )
+      );
+
+    const scale =
+      Number(referenceLength) /
+      pixelDistance;
+
+    setCmPerPixel(scale);
+
+    return;
+  }
+
+  setReferenceStart({
+    x,
+    y,
+  });
+
+  setReferenceEnd(null);
+};
+
+  const startAnalysis = () => {   
 
   if (!image) {
 
@@ -85,6 +168,9 @@ export default function AIKobozesPage({
 
     return;
   }
+
+  let avgDiameter = 30;
+let volume = 0;
 
   try {
 
@@ -158,70 +244,306 @@ cv.GaussianBlur(
   0
 );
 
-const circles =
+const clahe = new cv.CLAHE(
+  3.0,
+  new cv.Size(8, 8)
+);
+
+clahe.apply(
+  gray,
+  gray
+);
+
+cv.GaussianBlur(
+  gray,
+  gray,
+  new cv.Size(5, 5),
+  0
+);
+
+const thresh =
   new cv.Mat();
 
-cv.HoughCircles(
+cv.adaptiveThreshold(
   gray,
-  circles,
-  cv.HOUGH_GRADIENT,
-  1.5,
-  30,
-  120,
-  35,
-  10,
-  35
+  thresh,
+  255,
+  cv.ADAPTIVE_THRESH_GAUSSIAN_C,
+  cv.THRESH_BINARY_INV,
+  31,
+  5
 );
 
-console.log(
-  "Talált körök:",
-  circles.cols
+const kernel =
+  cv.Mat.ones(
+    3,
+    3,
+    cv.CV_8U
+  );
+
+cv.morphologyEx(
+  thresh,
+  thresh,
+  cv.MORPH_OPEN,
+  kernel
 );
 
-setEstimatedLogs(
-  circles.cols
+const contours =
+  new cv.MatVector();
+
+const hierarchy =
+  new cv.Mat();
+
+cv.findContours(
+  thresh,
+  contours,
+  hierarchy,
+  cv.RETR_EXTERNAL,
+  cv.CHAIN_APPROX_SIMPLE
 );
+
+let logCount = 0;
+
+const diameters:number[] = [];
+
+const detectedLogs: {
+  x: number;
+  y: number;
+  r: number;
+}[] = [];
 
 for (
   let i = 0;
-  i < circles.cols;
+  i < contours.size();
   i++
 ) {
 
-  const x =
-    circles.data32F[
-      i * 3
-    ];
+  const contour =
+    contours.get(i);
 
-  const y =
-    circles.data32F[
-      i * 3 + 1
-    ];
+  if (
+    contour.rows < 5
+  ) {
+    contour.delete();
+    continue;
+  }
 
-  const radius =
-    circles.data32F[
-      i * 3 + 2
-    ];
+  const area =
+  cv.contourArea(
+    contour
+  );
 
-  const center =
-    new cv.Point(
-      x,
-      y
+if (
+  area < 300 ||
+  area > 100000
+) {
+  contour.delete();
+  continue;
+}
+
+const perimeter =
+  cv.arcLength(
+    contour,
+    true
+  );
+
+const circularity =
+  (
+    4 *
+    Math.PI *
+    area
+  ) /
+  (
+    perimeter *
+    perimeter
+  );
+
+if (
+  circularity < 0.55
+) {
+  contour.delete();
+  continue;
+}
+
+  const ellipse =
+    cv.fitEllipse(
+      contour
     );
 
-  cv.circle(
+  const widthPx =
+    ellipse.size.width;
+
+  const heightPx =
+    ellipse.size.height;
+
+  const diameterPx =
+    (
+      widthPx +
+      heightPx
+    ) / 2;
+
+    const ratio =
+  Math.min(
+    widthPx,
+    heightPx
+  ) /
+  Math.max(
+    widthPx,
+    heightPx
+  );
+
+if (
+  ratio < 0.45
+) {
+  contour.delete();
+  continue;
+}
+
+if (
+  diameterPx < 15 ||
+  diameterPx > 250
+) {
+  contour.delete();
+  continue;
+}
+
+  const centerX =
+  ellipse.center.x;
+
+const centerY =
+  ellipse.center.y;
+
+const radius =
+  diameterPx / 2;
+
+const duplicate =
+  detectedLogs.some(
+    log => {
+
+      const dist =
+        Math.sqrt(
+          (
+            centerX -
+            log.x
+          ) ** 2 +
+          (
+            centerY -
+            log.y
+          ) ** 2
+        );
+
+      return (
+        dist <
+        radius * 0.7
+      );
+    }
+  );
+
+if (duplicate) {
+
+  contour.delete();
+
+  continue;
+}
+
+detectedLogs.push({
+  x: centerX,
+  y: centerY,
+  r: radius,
+});
+
+diameters.push(
+  diameterPx
+);
+
+logCount++;
+/*
+  cv.ellipse(
     src,
-    center,
-    radius,
+    ellipse,
     new cv.Scalar(
       0,
       255,
       0,
       255
     ),
-    3
+    2
   );
+*/
+
+cv.circle(
+  src,
+  new cv.Point(
+    ellipse.center.x,
+    ellipse.center.y
+  ),
+  5,
+  new cv.Scalar(
+    0,
+    255,
+    0,
+    255
+  ),
+  -1
+);
+  cv.putText(
+  src,
+  String(logCount),
+  new cv.Point(
+    centerX,
+    centerY
+  ),
+  cv.FONT_HERSHEY_SIMPLEX,
+  0.4,
+  new cv.Scalar(
+    255,
+    255,
+    0,
+    255
+  ),
+  1
+);
+
+  contour.delete();
 }
+
+setEstimatedLogs(
+  logCount
+);
+
+if (
+  diameters.length > 0 &&
+  cmPerPixel
+) {
+
+  const avgPixelDiameter =
+    diameters.reduce(
+      (a,b)=>a+b,
+      0
+    ) /
+    diameters.length;
+
+  avgDiameter =
+    Number(
+      (
+        avgPixelDiameter *
+        cmPerPixel
+      ).toFixed(1)
+    );
+}
+
+volume =
+  Number(
+    (
+      logCount *
+      Math.PI *
+      Math.pow(
+        avgDiameter / 100 / 2,
+        2
+      ) *
+      l
+    ).toFixed(2)
+  );
 
 cv.imshow(
   canvas,
@@ -234,17 +556,11 @@ setGrayImage(
   )
 );
 
-circles.delete();
-/*
-src.delete();
-gray.delete();
-edges.delete();
-*/
-    setGrayImage(
-      canvas.toDataURL(
-        "image/png"
-      )
-    );
+thresh.delete();
+kernel.delete();
+contours.delete();
+hierarchy.delete();
+clahe.delete();
 
     src.delete();
     gray.delete();
@@ -260,29 +576,6 @@ edges.delete();
     "OpenCV feldolgozási hiba!"
   );
 }
-/*
-  const estimatedCount =
-    Math.round(
-      l * w * 5
-    );
-*/
-  const avgDiameter =
-    30;
-
-  const volume =
-    Number(
-      (
-        l *
-        w *
-        0.75
-      ).toFixed(2)
-    );
-/*
-  setEstimatedLogs(
-    estimatedCount
-  );
-*/
-
   setAverageDiameter(
     avgDiameter
   );
@@ -291,7 +584,6 @@ edges.delete();
     volume
   );
 };
-
   return (
 
     <div className="card">
@@ -346,6 +638,34 @@ edges.delete();
         }
       />
 
+      <div className="card">
+
+  <h3>
+    📏 Referencia tárgy
+  </h3>
+
+  <p>
+    Add meg a képen látható
+    ismert hosszúságot.
+  </p>
+
+  <input
+    type="number"
+    value={referenceLength}
+    onChange={(e) =>
+      setReferenceLength(
+        e.target.value
+      )
+    }
+  />
+
+  <small>
+    Példa:
+    100 cm-es mérőléc
+  </small>
+
+</div>
+
       <label>
         Fotó
       </label>
@@ -398,16 +718,19 @@ edges.delete();
       {previewUrl && (
 
         <div
-          style={{
-            marginTop: "20px",
-            textAlign: "center",
-          }}
-        >
+  style={{
+    marginTop: "20px",
+    textAlign: "center",
+    position: "relative",
+    display: "inline-block",
+  }}
+>
 
           <img
   id="preview-image"
   src={previewUrl}
   alt="Rakat fotó"
+  onClick={handleImageClick}
   style={{
     width: "100%",
     maxWidth: "600px",
@@ -416,6 +739,69 @@ edges.delete();
       "1px solid rgba(0,216,255,.3)",
   }}
 />
+
+{referenceStart && (
+
+  <div
+    style={{
+      position: "absolute",
+      left: referenceStart.x - 8,
+      top: referenceStart.y - 8,
+      width: 16,
+      height: 16,
+      borderRadius: "50%",
+      background: "red",
+      border: "2px solid white",
+      pointerEvents: "none",
+    }}
+  />
+
+)}
+
+{referenceEnd && (
+
+  <div
+    style={{
+      position: "absolute",
+      left: referenceEnd.x - 8,
+      top: referenceEnd.y - 8,
+      width: 16,
+      height: 16,
+      borderRadius: "50%",
+      background: "lime",
+      border: "2px solid white",
+      pointerEvents: "none",
+    }}
+  />
+
+)}
+
+{referenceStart &&
+ referenceEnd && (
+
+  <svg
+    style={{
+      position: "absolute",
+      left: 0,
+      top: 0,
+      width: "100%",
+      height: "100%",
+      pointerEvents: "none",
+    }}
+  >
+
+    <line
+      x1={referenceStart.x}
+      y1={referenceStart.y}
+      x2={referenceEnd.x}
+      y2={referenceEnd.y}
+      stroke="yellow"
+      strokeWidth="3"
+    />
+
+  </svg>
+
+)}
 
         </div>
 
@@ -447,7 +833,33 @@ edges.delete();
 
       <br />
       <br />
+{cmPerPixel && (
 
+  <div className="card">
+
+    <h3>
+      📏 Kalibráció
+    </h3>
+
+    <p>
+      1 pixel =
+      {" "}
+      {cmPerPixel.toFixed(4)}
+      {" "}
+      cm
+    </p>
+
+    <p>
+      Referencia:
+      {" "}
+      {referenceLength}
+      {" "}
+      cm
+    </p>
+
+  </div>
+
+)}
       <button
         className="dashboard-green"
         onClick={startAnalysis}
@@ -534,6 +946,16 @@ edges.delete();
               {estimatedVolume} m³
             </strong>
           </p>
+
+          <p>
+  Skála:
+  {" "}
+  <strong>
+    {cmPerPixel?.toFixed(4)}
+    {" "}
+    cm/px
+  </strong>
+</p>
 
         </div>
 

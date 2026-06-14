@@ -4,6 +4,10 @@ import {
   writeAuditLog
 } from "../services/auditLogService";
 
+import {
+  calculateVolume as calculateTimberVolume
+} from "../services/cubingService";
+
 interface Props {
   stockpileId: string;
 }
@@ -24,7 +28,10 @@ export default function AddLogPage({
   const [quantity, setQuantity] =
     useState("1");
 
-  const calculateVolume = () => {
+    const [assortmentType, setAssortmentType] =
+  useState("Fűrészrönk");
+
+  const getCalculatedVolume = () => {
 
     const d = Number(diameter);
     const l = Number(length);
@@ -34,27 +41,29 @@ export default function AddLogPage({
       return 0;
     }
 
-    const radius =
-      d / 100 / 2;
-
-    const singleVolume =
-      Math.PI *
-      radius *
-      radius *
-      l;
-
-    return Number(
-      (
-        singleVolume * q
-      ).toFixed(3)
-    );
-  };
-
+    return calculateTimberVolume(
+  d,
+  l,
+  q,
+  species,
+  assortmentType
+);
+  }
+  
   const saveLog = async () => {
 
     const d = Number(diameter);
     const l = Number(length);
     const q = Number(quantity);
+
+    const volume =
+  calculateTimberVolume(
+    d,
+    l,
+    q,
+    species,
+    assortmentType
+  );
 
     if (!d || !l || !q) {
 
@@ -65,45 +74,31 @@ export default function AddLogPage({
       return;
     }
 
-    const radius =
-      d / 100 / 2;
-
-    const singleVolume =
-      Math.PI *
-      radius *
-      radius *
-      l;
-
-    const volume =
-      Number(
-        (
-          singleVolume * q
-        ).toFixed(3)
-      );
-
     await db.logEntries.add({
 
-      stockpileId,
+  stockpileId,
 
-      species,
+  species,
 
-      length: l,
+  assortmentType,
 
-      diameter: d,
+  length: l,
 
-      quantity: q,
+  diameter: d,
 
-      volume,
+  quantity: q,
 
-      createdAt:
-        new Date().toISOString(),
+  volume,
 
-    });
+  createdAt:
+    new Date().toISOString(),
+
+});
 
     await writeAuditLog(
-  `Rönk hozzáadva (${q} db ${species})`,
-  stockpileId
-);
+      `Rönk hozzáadva (${q} db ${species})`,
+      stockpileId
+    );
 
     alert(
       "Rönk mentve!"
@@ -148,33 +143,54 @@ export default function AddLogPage({
             )
           }
         >
-          <option>
-            Tölgy
-          </option>
-
-          <option>
-            Akác
-          </option>
-
-          <option>
-            Bükk
-          </option>
-
-          <option>
-            Nyár
-          </option>
-
-          <option>
-            Lucfenyő
-          </option>
-
-          <option>
-            Erdeifenyő
-          </option>
-
+          <option>Tölgy</option>
+          <option>Akác</option>
+          <option>Bükk</option>
+          <option>Nyár</option>
+          <option>Lucfenyő</option>
+          <option>Erdeifenyő</option>
         </select>
 
       </div>
+
+      <div className="card">
+
+  <h3>
+    Választék típusa
+  </h3>
+
+  <select
+    value={assortmentType}
+    onChange={(e) =>
+      setAssortmentType(
+        e.target.value
+      )
+    }
+  >
+
+    <option>
+      Fűrészrönk
+    </option>
+
+    <option>
+      Papírfa
+    </option>
+
+    <option>
+      Tűzifa
+    </option>
+
+    <option>
+      Oszlopfa
+    </option>
+
+    <option>
+      Állófa becslés
+    </option>
+
+  </select>
+
+</div>
 
       <div className="card">
 
@@ -246,7 +262,7 @@ export default function AddLogPage({
             textAlign: "center",
           }}
         >
-          {calculateVolume()} m³
+          {getCalculatedVolume()} m³
         </div>
 
       </div>

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { db } from "../database/db";
-//import { getCurrentLocation } from "../services/gps";
+import { getCurrentLocation } from "../services/gps";
 import { generateStockpileId } from "../services/idGenerator";
 import {
   writeAuditLog
@@ -21,14 +21,7 @@ export default function NewStockpilePage({
     setLoading(true);
 
     try {
-      //const location =
-      //  await getCurrentLocation();
-const location = {
-  coords: {
-    latitude: 47.4979,
-    longitude: 19.0402,
-  },
-};
+      const location = await getCurrentLocation();
       const id = generateStockpileId();
 
       await db.stockpiles.add({
@@ -37,6 +30,12 @@ const location = {
           location.coords.latitude,
         gpsLon:
           location.coords.longitude,
+          species: "",
+
+          estimatedVolume: undefined,
+
+          estimatedWeight: undefined,
+          
         createdAt:
           new Date().toISOString(),
         status: "Új rakat",

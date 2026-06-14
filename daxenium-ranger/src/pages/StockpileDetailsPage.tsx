@@ -39,6 +39,17 @@ const [logs, setLogs] = useState<any[]>([]);
   loadLogs();
 }, []);
 
+const [speciesSummary, setSpeciesSummary] =
+  useState<any[]>([]);
+
+const [assortmentSummary, setAssortmentSummary] =
+  useState<any[]>([]);
+
+const [diameterSummary, setDiameterSummary] =
+  useState<any[]>([]);
+
+  
+
 const loadLogs = async () => {
 
   const logs =
@@ -71,6 +82,111 @@ setLogCount(
   setTotalVolume(
     Number(volume.toFixed(3))
   );
+
+  
+
+  const speciesMap = new Map();
+
+logs.forEach((log) => {
+
+  const current =
+    speciesMap.get(log.species) || {
+      species: log.species,
+      volume: 0,
+      quantity: 0,
+    };
+
+  current.volume +=
+    log.volume || 0;
+
+  current.quantity +=
+    log.quantity || 1;
+
+  speciesMap.set(
+    log.species,
+    current
+  );
+});
+
+setSpeciesSummary(
+  Array.from(
+    speciesMap.values()
+  )
+);
+
+const assortmentMap =
+  new Map();
+
+logs.forEach((log) => {
+
+  const key =
+    log.assortmentType ||
+    "Fűrészrönk";
+
+  const current =
+    assortmentMap.get(key) || {
+      assortment: key,
+      volume: 0,
+      quantity: 0,
+    };
+
+  current.volume +=
+    log.volume || 0;
+
+  current.quantity +=
+    log.quantity || 1;
+
+  assortmentMap.set(
+    key,
+    current
+  );
+});
+
+setAssortmentSummary(
+  Array.from(
+    assortmentMap.values()
+  )
+);
+
+const diameterMap =
+  new Map();
+
+logs.forEach((log) => {
+
+  let group = "50+ cm";
+
+  if (log.diameter < 20)
+    group = "0-19 cm";
+
+  else if (log.diameter < 30)
+    group = "20-29 cm";
+
+  else if (log.diameter < 40)
+    group = "30-39 cm";
+
+  else if (log.diameter < 50)
+    group = "40-49 cm";
+
+  const current =
+    diameterMap.get(group) || {
+      group,
+      quantity: 0,
+    };
+
+  current.quantity +=
+    log.quantity || 1;
+
+  diameterMap.set(
+    group,
+    current
+  );
+});
+
+setDiameterSummary(
+  Array.from(
+    diameterMap.values()
+  )
+);
 };
 
 const deleteLog = async (
@@ -151,11 +267,19 @@ return (
         e.target.value;
 
       await db.stockpiles.update(
-        stockpile.id,
-        {
-          status: newStatus,
-        }
-      );
+  stockpile.id,
+  {
+    status: newStatus,
+
+    modifiedAt:
+      new Date().toISOString(),
+
+    modifiedBy:
+      localStorage.getItem(
+        "currentUser"
+      ) || "ismeretlen",
+  }
+);
 
       await writeAuditLog(
   `Állapot módosítva: ${newStatus}`,
@@ -202,6 +326,42 @@ return (
   </select>
 
 </div>
+
+<h3>🚚 Szállítójegy szám</h3>
+
+<input
+  value={
+    stockpile.transportNoteNumber || ""
+  }
+  onChange={async (e) => {
+
+    const value = e.target.value;
+
+    await db.stockpiles.update(
+      stockpile.id,
+      {
+        transportNoteNumber: value,
+        modifiedAt:
+          new Date().toISOString(),
+        modifiedBy:
+          localStorage.getItem(
+            "currentUser"
+          ) || "ismeretlen",
+      }
+    );
+
+    await writeAuditLog(
+      `Szállítójegy módosítva: ${value}`,
+      stockpile.id
+    );
+
+    setStockpile({
+      ...stockpile,
+      transportNoteNumber: value,
+    });
+
+  }}
+/>
 
   <button
     className="delete-stockpile-btn"
@@ -317,6 +477,110 @@ return (
     >
       ➕ Fa hozzáadása
     </button>
+
+    <div className="card">
+
+  <h2>
+    🌳 Fafaj összesítés
+  </h2>
+
+  {speciesSummary.map(
+    (item) => (
+
+      <div
+        key={item.species}
+        style={{
+          marginBottom: "10px",
+        }}
+      >
+
+        <strong>
+          {item.species}
+        </strong>
+
+        <br />
+
+        {item.quantity} db
+
+        <br />
+
+        {item.volume.toFixed(3)}
+        {" "}m³
+
+      </div>
+
+    )
+  )}
+
+</div>
+
+<div className="card">
+
+  <h2>
+    📦 Választékok
+  </h2>
+
+  {assortmentSummary.map(
+    (item) => (
+
+      <div
+        key={item.assortment}
+        style={{
+          marginBottom: "10px",
+        }}
+      >
+
+        <strong>
+          {item.assortment}
+        </strong>
+
+        <br />
+
+        {item.quantity} db
+
+        <br />
+
+        {item.volume.toFixed(3)}
+        {" "}m³
+
+      </div>
+
+    )
+  )}
+
+</div>
+
+<div className="card">
+
+  <h2>
+    📏 Átmérő osztályok
+  </h2>
+
+  {diameterSummary.map(
+    (item) => (
+
+      <div
+        key={item.group}
+        style={{
+          marginBottom: "10px",
+        }}
+      >
+
+        <strong>
+          {item.group}
+        </strong>
+
+        <br />
+
+        {item.quantity}
+        {" "}db
+
+      </div>
+
+    )
+  )}
+
+</div>
 
     <h2>Rönk lista</h2>
 
